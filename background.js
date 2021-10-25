@@ -4,9 +4,14 @@
 # Database
 # History
 # Shelf
-# Events
+# Storage
+	# Get
+	# Changed
+# Downloads
 	# Created
 	# Changed
+# Messages
+
 # Initialization
 --------------------------------------------------------------*/
 
@@ -15,34 +20,67 @@
 --------------------------------------------------------------*/
 
 var DB = {
-	ready: false,
-	open: function (callback) {
-		var request = indexedDB.open('download_manager');
+		ready: false,
+		open: function (callback) {
+			var request = indexedDB.open('download_manager');
 
-		request.onupgradeneeded = function () {
-			var object = this.result.createObjectStore('downloads', {
-				keyPath: 'id'
-			});
-			
-			//object.createIndex('domainIndex', 'domain');
-		};
+			request.onupgradeneeded = function () {
+				var object = this.result.createObjectStore('downloads', {
+					keyPath: 'id'
+				});
+				
+				object.createIndex('extension', 'extension');
+				object.createIndex('id', 'id');
+				object.createIndex('name', 'name');
+				object.createIndex('size', 'size');
+				object.createIndex('time', 'time');
+				object.createIndex('type', 'type');
+				object.createIndex('url', 'url');
+			};
 
-		request.onsuccess = function () {
-			DB.request = this.result;
+			request.onsuccess = function () {
+				DB.request = this.result;
 
-			callback();
-		};
+				if (callback) {
+					callback();
+				}
+			};
+		},
+		put: function(store_name, item) {
+			var transaction = this.request.transaction(store_name, 'readwrite'),
+				object_store = transaction.objectStore(store_name);
+
+			object_store.put(item);
+		},
+		get: function(store_name, index_name, callback, offset = false, direction = 'next') {
+			var transaction = this.request.transaction(store_name, 'readonly'),
+				object_store = transaction.objectStore(store_name).index(index_name),
+				result = [];
+
+			object_store.openCursor(null, direction).onsuccess = function(event) {
+				var cursor = event.target.result;
+
+				if (offset !== false) {
+					cursor.advance(offset);
+
+					offset = false;
+				} else if (cursor && result.length < 100) {
+					result.push(cursor.value);
+
+					cursor.continue();
+				} else {
+					callback(result);
+				}
+			};
+		},
+		delete: function(store_name, index) {
+			var transaction = this.request.transaction(store_name, 'readwrite'),
+				object_store = transaction.objectStore(store_name);
+
+			object_store.delete(index);
+		}
 	},
-	put: function(store_name, item) {
-		var transaction = this.request.transaction(store_name, 'readwrite'),
-			object_store = transaction.objectStore(store_name);
-
-		object_store.put(item);
-	}
-};
-
-
-
+	storage = {};
 
 
 /*--------------------------------------------------------------
@@ -50,13 +88,12 @@ var DB = {
 --------------------------------------------------------------*/
 
 function history(item) {
-	chrome.downloads.erase({
-		id: item.id
-	});
+	if (storage.erase === true) {
+		chrome.downloads.erase({
+			id: item.id
+		});
+	}
 }
-
-
-
 
 
 /*--------------------------------------------------------------
@@ -64,15 +101,46 @@ function history(item) {
 --------------------------------------------------------------*/
 
 function shelf() {
-	chrome.downloads.setShelfEnabled(false);
+	chrome.downloads.setShelfEnabled(storage.shelf);
 }
 
 
+/*--------------------------------------------------------------
+# STORAGE
+--------------------------------------------------------------*/
 
+/*--------------------------------------------------------------
+# GET
+--------------------------------------------------------------*/
+
+chrome.storage.local.get(function (items) {
+	storage = items;
+
+	if (items.hasOwnProperty('shelf') === false) {
+		storage.shelf = true;
+	}
+
+	shelf();
+});
 
 
 /*--------------------------------------------------------------
-# EVENTS
+# CHANGE
+--------------------------------------------------------------*/
+
+chrome.storage.onChanged.addListener(function (changes) {
+    for (var key in changes) {
+    	storage[key] = changes[key].newValue;
+    }
+
+    if (changes.shelf) {
+    	shelf();
+    }
+});
+
+
+/*--------------------------------------------------------------
+# DOWNLOADS
 --------------------------------------------------------------*/
 
 /*--------------------------------------------------------------
@@ -92,8 +160,10 @@ chrome.downloads.onCreated.addListener(function(item) {
 		}
 	}
 
-	if ('arc bz bz2 gz jar rar tar zip 7z'.indexOf(type) !== -1) {
-		type = 'archive';
+	for (var key in FILETYPE) {
+		if (FILETYPE[key].indexOf(type)) {
+			type = key;
+		}
 	}
 
 	DB.put('downloads', {
@@ -105,8 +175,6 @@ chrome.downloads.onCreated.addListener(function(item) {
 		type: type,
 		url: item.url
 	});
-
-	shelf();
 });
 
 
@@ -121,13 +189,25 @@ chrome.downloads.onChanged.addListener(function(item) {
 });
 
 
+/*--------------------------------------------------------------
+# MESSAGES
+--------------------------------------------------------------*/
 
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+	if (request.action === 'get-downloads') {
+		DB.get('downloads', 'time', function(items) {
+			sendResponse(items);
+		});
+
+		return true;
+	} else if (request.action === 'delete') {
+		DB.delete('downloads', request.id);
+	}
+});
 
 
 /*--------------------------------------------------------------
 # INITIALIZATION
 --------------------------------------------------------------*/
 
-DB.open(function() {
-	
-});
+DB.open();

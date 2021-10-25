@@ -1452,7 +1452,17 @@ FILETYPE = {
 		'zlib',
 		'zstd'
 	],
-	archive: [],
+	archive: [
+		'arc',
+		'bz',
+		'bz2',
+		'gz',
+		'jar',
+		'rar',
+		'tar',
+		'zip',
+		'7z'
+	],
 	audio: [
 		'1d-interleaved-parityfec',
 		'32kadpcm',
@@ -1640,6 +1650,7 @@ FILETYPE = {
 		'hej2k',
 		'hsj2',
 		'jls',
+		'jpeg',
 		'jp2',
 		'jph',
 		'jphc',
@@ -1848,7 +1859,6 @@ FILETYPE = {
 		'H264-RCDO',
 		'H264-SVC',
 		'H265',
-		'JPEG',
 		'MP1S',
 		'MP2P',
 		'MP2T',

@@ -1,0 +1,44 @@
+{
+    "areYouSureYouWantToExportTheData": {
+        "message": "Are you sure you want to export the data?"
+    },
+    "areYouSureYouWantToImportTheData": {
+        "message": "Are you sure you want to import the data?"
+    },
+    "autoErase": {
+        "message": "Auto erase"
+    },
+    "black": {
+        "message": "Black"
+    },
+    "cancel": {
+        "message": "Cancel"
+    },
+    "dark": {
+        "message": "Dark"
+    },
+    "export": {
+        "message": "Export"
+    },
+    "import": {
+        "message": "Import"
+    },
+    "language": {
+        "message": "Language"
+    },
+    "light": {
+        "message": "Light"
+    },
+    "ok": {
+        "message": "OK"
+    },
+    "remove": {
+        "message": "Remove"
+    },
+    "shelf": {
+        "message": "Shelf"
+    },
+    "theme": {
+        "message": "Theme"
+    }
+}
